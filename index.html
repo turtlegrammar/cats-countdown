@@ -104,7 +104,7 @@
             if (leftVal - rightVal > 0) {
                 allowed.push(makeMinus);
             }
-            if (leftVal % rightVal == 0) {
+            if (rightVal > 1 && leftVal % rightVal == 0) {
                 allowed.push(makeDivides);
             }
             return allowed;
@@ -171,7 +171,7 @@
 
         const nums =  [... takeRandom(rand, smallsPool, 4)[0], ... takeRandom(rand, bigsPool, 2)[0]];
 
-        let target = generatePleasantTarget(rand, nums);
+        const target = generatePleasantTarget(rand, nums);
 
         for (let i = 0; i < nums.length; i++) {
             document.getElementById("num-" + i).textContent = nums[i];
