@@ -1,3 +1,5 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
     td, p {
         font-size: 6vw;
@@ -14,7 +16,6 @@
     }
 </style>
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <html>
     <table>
         <tr>
@@ -91,13 +92,11 @@
     }
 
     function generateTarget(rand, nums, numberOfOps) {
-        // { value: 1, type: 'number/op', left:, right:, op: }
         const makeNumber = n => ({value: n, type: 'number'});
         const makePlus = (l, r) => ({value: l.value + r.value, type: '+', left: l, right: r});
         const makeMinus = (l, r) => ({value: l.value - r.value, type: '-', left: l, right: r});
         const makeTimes = (l, r) => ({value: l.value * r.value, type: '*', left: l, right: r});
         const makeDivides = (l, r) => ({value: l.value / r.value, type: '%', left: l, right: r});
-        // todo: handle divide later
 
         function allowedCombinations(leftVal, rightVal) {
             const allowed = [makePlus, makeTimes];
