@@ -1,3 +1,20 @@
+<style>
+    td, p {
+        font-size: 2vw;
+    }
+    td {
+        text-align: center;
+        width: 5%;
+    }
+    button {
+        font-size: 1vw;
+    }
+    table {
+        width: 30%;
+    }
+</style>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <html>
     <table>
         <tr>
@@ -10,13 +27,13 @@
         </tr>
     </table>
     <p id="target">Target: 341</p>
+    <p id="solution">Solution: ???</p>
     <table>
         <tr>
             <td><button id="show-solution">Show Solution</button></td>
             <td><button id="gimme-another">Gimme Another</button></td>
         </tr>
     </table>
-    <p id="solution"></p>
 </html>
 
 <script>
@@ -151,7 +168,7 @@
     const bigsPool = [25, 50, 75, 100];
 
     function setup() {
-        document.getElementById("solution").textContent = "";
+        document.getElementById("solution").textContent = "Solution: ???";
 
         const nums =  [... takeRandom(rand, smallsPool, 4)[0], ... takeRandom(rand, bigsPool, 2)[0]];
 
@@ -164,7 +181,7 @@
         document.getElementById("target").textContent = "Target: " + target.value;
 
         document.getElementById("show-solution").onclick = () => {
-            document.getElementById("solution").textContent = targetToString(target);
+            document.getElementById("solution").textContent = "Solution: " + targetToString(target);
         }
     }
 
