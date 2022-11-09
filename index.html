@@ -1,0 +1,174 @@
+<html>
+    <table>
+        <tr>
+            <td id="num-0">1</td>
+            <td id="num-1">3</td>
+            <td id="num-2">7</td>
+            <td id="num-3">4</td>
+            <td id="num-4">25</td>
+            <td id="num-5">100</td>
+        </tr>
+    </table>
+    <p id="target">Target: 341</p>
+    <table>
+        <tr>
+            <td><button id="show-solution">Show Solution</button></td>
+            <td><button id="gimme-another">Gimme Another</button></td>
+        </tr>
+    </table>
+    <p id="solution"></p>
+</html>
+
+<script>
+    function getRngSeed() {
+        const date = new Date();
+        return 10000 * date.getFullYear() + 100 * date.getMonth() + date.getDate();
+    }
+
+    function getRng(seed) {
+        // https://stackoverflow.com/a/47593316
+        function sfc32(a, b, c, d) {
+            return function () {
+                a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0;
+                var t = (a + b) | 0;
+                a = b ^ b >>> 9;
+                b = c + (c << 3) | 0;
+                c = (c << 21 | c >>> 11);
+                d = d + 1 | 0;
+                t = t + d | 0;
+                c = c + t | 0;
+                return (t >>> 0) / 4294967296;
+            }
+        }
+
+        return sfc32(0x9E3779B9, 0x243F6A88, 0xB7E15162, seed);
+    }
+
+    function takeRandom(rand, source, n) {
+        // https://stackoverflow.com/a/12646864
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(rand() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        const shuffled = [ ... source];
+        shuffleArray(shuffled);
+        const taken = [];
+        const remaining = [];
+        for (let i = 0; i < shuffled.length; i++) {
+            (i < n ? taken : remaining).push(shuffled[i]);
+        }
+
+        return [taken, remaining];
+    }
+
+    function takeRandomOne(rand, source) {
+        const [x, y] = takeRandom(rand, source, 1);
+        return [x[0], y];
+    }
+
+    function randomBool(rand) {
+        return rand() < 0.5;
+    }
+
+    function generateTarget(rand, nums, numberOfOps) {
+        // { value: 1, type: 'number/op', left:, right:, op: }
+        const makeNumber = n => ({value: n, type: 'number'});
+        const makePlus = (l, r) => ({value: l.value + r.value, type: '+', left: l, right: r});
+        const makeMinus = (l, r) => ({value: l.value - r.value, type: '-', left: l, right: r});
+        const makeTimes = (l, r) => ({value: l.value * r.value, type: '*', left: l, right: r});
+        const makeDivides = (l, r) => ({value: l.value / r.value, type: '%', left: l, right: r});
+        // todo: handle divide later
+
+        function allowedCombinations(leftVal, rightVal) {
+            const allowed = [makePlus, makeTimes];
+            allowed.push(makePlus);
+            if (leftVal - rightVal > 0) {
+                allowed.push(makeMinus);
+            }
+            if (leftVal % rightVal == 0) {
+                allowed.push(makeDivides);
+            }
+            return allowed;
+        }
+
+        function go(target, numberOfOpsRemaining, pool) {
+            // returns [target, newNumberOfOpsRemaining, newPool]
+            function singleOp() {
+                const [combineWith, rest] = takeRandomOne(rand, pool);
+                const allowedOps = allowedCombinations(target.value, combineWith);
+                return [takeRandomOne(rand, allowedOps)[0](target, makeNumber(combineWith)), numberOfOpsRemaining - 1, rest];
+            }
+
+            function doubleOp() {
+                const [loveBirds, rest] = takeRandom(rand, pool, 2);
+                const allowedCombosForLoveBirds = allowedCombinations(loveBirds[0], loveBirds[1]);
+                const combinedLoveBird = takeRandomOne(rand, allowedCombosForLoveBirds)[0](makeNumber(loveBirds[0]), makeNumber(loveBirds[1]));
+                const allowedCombos = allowedCombinations(target.value, combinedLoveBird.value);
+                return [takeRandomOne(rand, allowedCombos)[0](target, combinedLoveBird), numberOfOpsRemaining - 2, rest];
+            }
+
+            if (numberOfOpsRemaining <= 0) {
+                return target;
+            } else  {
+                const strategy = numberOfOpsRemaining == 1 ? singleOp : (randomBool(rand) ? singleOp : doubleOp);
+                const [newTarget, nextNumberOfOpsRemaining, newPool] = strategy();
+
+                return go(newTarget, nextNumberOfOpsRemaining, newPool);
+            }
+        }
+
+        const [firstTarget, firstRest] = takeRandomOne(rand, nums);
+
+        return go(makeNumber(firstTarget), numberOfOps, firstRest);
+    }
+
+    function generatePleasantTarget(rand, nums) {
+        let i = 0;
+        while (true) {
+            i++;
+            const target = generateTarget(rand, nums, 3);
+            if (100 <= target.value && target.value <= 999) {
+                console.log(i);
+                return target;
+            }
+        }
+    }
+    
+    function targetToString(target) {
+        return target.type == 'number' ? target.value
+            : target.type == '+' ? ( '(' + targetToString(target.left) + ' + ' + targetToString(target.right) + ')')
+            : target.type == '*' ? ( '(' + targetToString(target.left) + ' * ' + targetToString(target.right) + ')')
+            : target.type == '%' ? ( '(' + targetToString(target.left) + ' % ' + targetToString(target.right) + ')')
+            : target.type == '-' ? ( '(' + targetToString(target.left) + ' - ' + targetToString(target.right) + ')')
+            : "uhhhhhh";
+    }
+
+    const rand = getRng(getRngSeed());
+    const smallsPool = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const bigsPool = [25, 50, 75, 100];
+
+    function setup() {
+        document.getElementById("solution").textContent = "";
+
+        const nums =  [... takeRandom(rand, smallsPool, 4)[0], ... takeRandom(rand, bigsPool, 2)[0]];
+
+        let target = generatePleasantTarget(rand, nums);
+
+        for (let i = 0; i < nums.length; i++) {
+            document.getElementById("num-" + i).textContent = nums[i];
+        }
+
+        document.getElementById("target").textContent = "Target: " + target.value;
+
+        document.getElementById("show-solution").onclick = () => {
+            document.getElementById("solution").textContent = targetToString(target);
+        }
+    }
+
+    document.getElementById("gimme-another").onclick = setup;
+
+    setup();
+</script>
