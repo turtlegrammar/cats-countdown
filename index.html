@@ -99,8 +99,10 @@
         const makeDivides = (l, r) => ({value: l.value / r.value, type: '%', left: l, right: r});
 
         function allowedCombinations(leftVal, rightVal) {
-            const allowed = [makePlus, makeTimes];
-            allowed.push(makePlus);
+            const allowed = [makePlus];
+            if (leftVal * rightVal < 1000) {
+                allowed.push(makeTimes);
+            }
             if (leftVal - rightVal > 0) {
                 allowed.push(makeMinus);
             }
