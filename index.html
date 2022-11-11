@@ -38,6 +38,21 @@
 </html>
 
 <script>
+    /*
+    https://ok-color-picker.netlify.app/#268350
+    155 -> 25 in intervals of 13 for 10
+    1. 155 = 268350
+    2. 141 = 3d8232
+    3. 127 = 5b7c1b
+    4. 113 = 707613
+    5. 99 = 7f7012
+    6. 84 = 8c6911
+    7. 69 = 99610f
+    8. 54 = a7560f
+    9. 40 = b64618
+    10. 25 = c32f32
+
+    */
     function getRngSeed() {
         const date = new Date();
         return 10000 * date.getFullYear() + 100 * date.getMonth() + date.getDate();
@@ -147,7 +162,7 @@
         let i = 0;
         while (true) {
             i++;
-            const target = generateTarget(rand, nums, 3);
+            const target = generateTarget(rand, nums, takeRandomOne(rand, [3, 4, 5], 1)[0]);
             if (100 <= target.value && target.value <= 999) {
                 console.log(i);
                 return target;
