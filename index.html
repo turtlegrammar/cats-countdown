@@ -106,16 +106,17 @@
         return rand() < 0.5;
     }
 
+    const makeNumber = n => ({value: n, type: 'number'});
+    const makePlus = (l, r) => ({value: l.value + r.value, type: '+', left: l, right: r});
+    const makeMinus = (l, r) => ({value: l.value - r.value, type: '-', left: l, right: r});
+    const makeTimes = (l, r) => ({value: l.value * r.value, type: '*', left: l, right: r});
+    const makeDivides = (l, r) => ({value: l.value / r.value, type: '%', left: l, right: r});
+
     function generateTarget(rand, nums, numberOfOps) {
-        const makeNumber = n => ({value: n, type: 'number'});
-        const makePlus = (l, r) => ({value: l.value + r.value, type: '+', left: l, right: r});
-        const makeMinus = (l, r) => ({value: l.value - r.value, type: '-', left: l, right: r});
-        const makeTimes = (l, r) => ({value: l.value * r.value, type: '*', left: l, right: r});
-        const makeDivides = (l, r) => ({value: l.value / r.value, type: '%', left: l, right: r});
 
         function allowedCombinations(leftVal, rightVal) {
             const allowed = [makePlus];
-            if (leftVal * rightVal < 1000) {
+            if (leftVal * rightVal < 1000 && leftVal != 1 && rightVal != 1) {
                 allowed.push(makeTimes);
             }
             if (leftVal - rightVal > 0) {
@@ -164,7 +165,6 @@
             i++;
             const target = generateTarget(rand, nums, takeRandomOne(rand, [3, 4, 5], 1)[0]);
             if (100 <= target.value && target.value <= 999) {
-                console.log(i);
                 return target;
             }
         }
@@ -187,6 +187,108 @@
             : "uhhhhhh";
     }
 
+    function findAllSolutions(pool, target) {
+
+        alreadyEncountered = new Set();
+
+        function combine(arr1, arr2, areSame, resultArr) {
+            function addResult(n) {
+                const x = n.value * 64 + n.membership;
+                if (!alreadyEncountered.has(x)) {
+                    resultArr.push(n);
+                    alreadyEncountered.add(x);
+                }
+            }
+            for (let i = 0; i < arr1.length; i++) {
+                for (let j = (areSame ? i + 1 : 0); j < arr2.length; j++) {
+                    const left = arr1[i];
+                    const right = arr2[j];
+                    const newMembership = left.membership | right.membership;
+                    if ( (left.membership & right.membership) == 0) {
+                        if (left.value + right.value < 1000) {
+                            const p = makePlus(left, right);
+                            p.membership = newMembership;
+                            addResult(p);
+                        }
+        
+                        if (left.value != 1 && right.value != 1 && left.value * right.value < 1000) {
+                            const t = makeTimes(left, right);
+                            t.membership = newMembership;
+                            addResult(t);
+                        }
+        
+                        if (left.value > right.value) {
+                            const m = makeMinus(left, right);
+                            m.membership = newMembership;
+                            addResult(m);
+                        }
+
+                        if (right.value > left.value) {
+                            const m = makeMinus(right, left);
+                            m.membership = newMembership;
+                            addResult(m);
+                        }
+        
+                        if (left.value % right.value == 0 && right.value != 1) {
+                            const d = makeDivides(left, right);
+                            d.membership = newMembership;
+                            addResult(d);
+                        }
+
+                        if (right.value % left.value == 0 && left.value != 1) {
+                            const d = makeDivides(right, left);
+                            d.membership = newMembership;
+                            addResult(d);
+                        }
+                    }
+                }
+            }
+        }
+
+        const ones = pool.map(makeNumber);
+        for (let i = 0; i < ones.length; i++) {
+            ones[i].membership = 2**i;
+        }
+
+
+        const twos = [];
+        combine(ones, ones, true, twos);
+
+        const threes = [];
+        combine(ones, twos, false, threes);
+
+        const fours = [];
+        combine(twos, twos, true, fours);
+        combine(ones, threes, false, fours);
+
+        const fives = [];
+        combine(ones, fours, false, fives);
+        combine(twos, threes, false, fives);
+
+        const sixes = [];
+        combine(ones, fives, false, sixes);
+        combine(twos, fours, false, sixes);
+        combine(threes, threes, true, sixes);
+
+        // console.log("ones.length", ones.length);
+        // console.log("twos.length", twos.length);
+        // console.log("threes.length", threes.length);
+        // console.log("fours.length", fours.length);
+        // console.log("fives.length", fives.length);
+        // console.log("sixes.length", sixes.length);
+
+        const results = [];
+        [ones, twos, threes, fours, fives, sixes].forEach(arr => {
+            for (let i = 0; i < arr.length; i++) {
+                if (arr[i].value == target) {
+                    results.push(arr[i]);
+                }
+            }
+        });
+
+        return results;
+    }
+
     const rand = getRng(getRngSeed());
     const smallsPool = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     const bigsPool = [25, 50, 75, 100];
@@ -204,9 +306,13 @@
 
         document.getElementById("target").textContent = "Target: " + target.value;
 
+        const allSolutions = findAllSolutions(nums, target.value).map(targetToString);
         document.getElementById("show-solution").onclick = () => {
-            document.getElementById("solution").textContent = "Solution: " + targetToString(target);
+            document.getElementById("solution").innerHTML = "Solution(s): </br>" + allSolutions.join("</br>");
         }
+
+        // console.log(target.value);
+        // console.log(findAllSolutions(nums, target.value).map(targetToString));
     }
 
     document.getElementById("gimme-another").onclick = setup;
