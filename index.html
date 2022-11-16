@@ -173,6 +173,8 @@
     function targetToString(target) {
         return target.type == 'number' ? target.value
             : target.type == '+' ? (targetToString(target.left) + ' + ' + targetToString(target.right))
+            : target.type == '-' ? targetToString(target.left) + ' - ' + 
+                ((target.right.type == '+' || target.right.type == '-') ? '(' + targetToString(target.right) + ')' : targetToString(target.right))
             : (
                 ((target.left.type == '+' || target.left.type == '-') ? '(' + targetToString(target.left) + ')' : targetToString(target.left))
                 + " " + target.type + " " +
