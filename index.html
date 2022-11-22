@@ -3,6 +3,8 @@
 <style>
     td, p {
         font-size: 6vw;
+        font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+        font-style: italic;
     }
     td {
         text-align: center;
@@ -14,9 +16,17 @@
     table {
         width: 90%;
     }
+    #difficulty {
+        width: 90%;
+        height: 10%;
+    }
+    #num-0, #num-1, #num-2, #num-3, #num-4, #num-5 {
+        font-style: bold;
+    }
 </style>
 
 <html>
+    <input type="range" min="1" max="5" value="3" class="slider" id="difficulty"/>
     <table>
         <tr>
             <td id="num-0">1</td>
@@ -53,6 +63,14 @@
     10. 25 = c32f32
 
     */
+    const difficultyToColor = {
+        1: "#268350",
+        2: "#5b7c1b",
+        3: "#8c6911",
+        4: "#a7560f",
+        5: "#c32f32"
+    };
+
     function getRngSeed() {
         const date = new Date();
         return 10000 * date.getFullYear() + 100 * date.getMonth() + date.getDate();
@@ -106,70 +124,35 @@
         return rand() < 0.5;
     }
 
-    const makeNumber = n => ({value: n, type: 'number'});
-    const makePlus = (l, r) => ({value: l.value + r.value, type: '+', left: l, right: r});
-    const makeMinus = (l, r) => ({value: l.value - r.value, type: '-', left: l, right: r});
-    const makeTimes = (l, r) => ({value: l.value * r.value, type: '*', left: l, right: r});
-    const makeDivides = (l, r) => ({value: l.value / r.value, type: '/', left: l, right: r});
+    const nextDepth = (opType, l, r) => 
+        l.opType == undefined && r.opType == undefined ? 1
+        : l.opType == undefined ? (r.opType ^ opType) + r.depth
+        : r.opType == undefined ? (l.opType ^ opType) + l.depth
+        : Math.max(l.depth, r.depth) + ((opType ^ l.opType) | (opType ^ r.opType));
 
-    function generateTarget(rand, nums, numberOfOps) {
+    const plusOp = 1; const minusOp = 1;
+    const timesOp = 0; const divOp = 0;
 
-        function allowedCombinations(leftVal, rightVal) {
-            const allowed = [makePlus];
-            if (leftVal * rightVal < 1000 && leftVal != 1 && rightVal != 1) {
-                allowed.push(makeTimes);
-            }
-            if (leftVal - rightVal > 0) {
-                allowed.push(makeMinus);
-            }
-            if (rightVal > 1 && leftVal % rightVal == 0) {
-                allowed.push(makeDivides);
-            }
-            return allowed;
-        }
+    const makeNumber = (n, m) => ({value: n, type: 'number', opType: undefined, depth: 0, membership: m, numbers: 1});
 
-        function go(target, numberOfOpsRemaining, pool) {
-            // returns [target, newNumberOfOpsRemaining, newPool]
-            function singleOp() {
-                const [combineWith, rest] = takeRandomOne(rand, pool);
-                const allowedOps = allowedCombinations(target.value, combineWith);
-                return [takeRandomOne(rand, allowedOps)[0](target, makeNumber(combineWith)), numberOfOpsRemaining - 1, rest];
-            }
+    const makePlus = (l, r) => ({value: l.value + r.value, type: '+', left: l, right: r, 
+        opType: plusOp, depth: nextDepth(plusOp, l, r), membership: l.membership | r.membership, numbers: l.numbers + r.numbers});
 
-            function doubleOp() {
-                const [loveBirds, rest] = takeRandom(rand, pool, 2);
-                const allowedCombosForLoveBirds = allowedCombinations(loveBirds[0], loveBirds[1]);
-                const combinedLoveBird = takeRandomOne(rand, allowedCombosForLoveBirds)[0](makeNumber(loveBirds[0]), makeNumber(loveBirds[1]));
-                const allowedCombos = allowedCombinations(target.value, combinedLoveBird.value);
-                return [takeRandomOne(rand, allowedCombos)[0](target, combinedLoveBird), numberOfOpsRemaining - 2, rest];
-            }
+    const makeMinus = (l, r) => ({value: l.value - r.value, type: '-', left: l, right: r, 
+        opType: minusOp, depth: nextDepth(minusOp, l, r), membership: l.membership | r.membership, numbers: l.numbers + r.numbers});
 
-            if (numberOfOpsRemaining <= 0) {
-                return target;
-            } else  {
-                const strategy = numberOfOpsRemaining == 1 ? singleOp : (randomBool(rand) ? singleOp : doubleOp);
-                const [newTarget, nextNumberOfOpsRemaining, newPool] = strategy();
+    const makeTimes = (l, r) => ({value: l.value * r.value, type: '*', left: l, right: r, 
+        opType: timesOp, depth: nextDepth(timesOp, l, r), membership: l.membership | r.membership, numbers: l.numbers + r.numbers});
 
-                return go(newTarget, nextNumberOfOpsRemaining, newPool);
-            }
-        }
+    const makeDivides = (l, r) => ({value: l.value / r.value, type: '/', left: l, right: r, 
+        opType: divOp, depth: nextDepth(divOp, l, r), membership: l.membership | r.membership, numbers: l.numbers + r.numbers});
 
-        const [firstTarget, firstRest] = takeRandomOne(rand, nums);
+    const nonOverlappingMembership = (l, r) => (l.membership & r.membership) === 0;
 
-        return go(makeNumber(firstTarget), numberOfOps, firstRest);
-    }
+    const uniqueishId = x => (x.value << 9) + (x.membership << 3) + x.depth;
 
-    function generatePleasantTarget(rand, nums) {
-        let i = 0;
-        while (true) {
-            i++;
-            const target = generateTarget(rand, nums, takeRandomOne(rand, [3, 4, 5], 1)[0]);
-            if (100 <= target.value && target.value <= 999) {
-                return target;
-            }
-        }
-    }
-    
+    const complexity = x => x.depth ** 2 + x.numbers;
+
     function targetToString(target) {
         return target.type == 'number' ? target.value
             : target.type == '+' ? (targetToString(target.left) + ' + ' + targetToString(target.right))
@@ -182,69 +165,107 @@
             );
     }
 
-    function findAllSolutions(pool, target) {
+    const difficultyToComplexities = {
+        1: [3, 4, 5, 6, 7],
+        2: [8, 9, 10, 11, 12],
+        3: [13, 14, 15, 18, 19],
+        4: [20, 21, 22, 27, 28],
+        5: [29, 30, 31]
+    };
+    // the fact that I hardcoded this is really sad.
+    const complexityToDifficulty = {
+        3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 
+        8: 2, 9: 2, 10: 2, 11: 2, 12: 2, 
+        13: 3, 14: 3, 15: 3, 18: 3, 19: 3, 
+        20: 4, 21: 4, 22: 4, 27: 4, 28: 4,
+        29: 5, 30: 5, 31: 5
+    };
+
+    function findAllSolutions(pool) {
+        function groupEquations(equations) {
+            equations.forEach(eq => { 
+                eq.complexity = complexity(eq); 
+                eq.written = targetToString(eq);
+                eq.difficulty =  complexityToDifficulty[eq.complexity];
+            });
+
+            const valueToEqs = new Map();
+            equations.forEach(eq => {
+                if (eq.value < 1000 && eq.value > 100) {
+                    if (valueToEqs.has(eq.value)) {
+                        valueToEqs.get(eq.value).push(eq);
+                    } else {
+                        valueToEqs.set(eq.value, [eq]);
+                    }
+                }
+            });
+
+            const valueToEqSummary = new Map();
+
+            for (var [val, eqs] of valueToEqs.entries()) {
+                eqs.sort( (x, y) => x.complexity - y.complexity);
+                valueToEqSummary.set(val, {easiestComplexity: eqs[0].complexity, easiestDifficulty: eqs[0].difficulty, numEqs: eqs.length, equations: eqs});
+            }
+
+            const sortedValueToEqSummary = [ ... valueToEqSummary];
+
+            sortedValueToEqSummary.sort((x, y) => { 
+                const n = x[1].numEqs - y[1].numEqs; 
+                return n != 0 
+                    ? n 
+                    : y[1].easiestDifficulty - x[1].easiestDifficulty; 
+                });
+
+            return sortedValueToEqSummary;
+        }
 
         alreadyEncountered = new Set();
 
         function combine(arr1, arr2, areSame, resultArr) {
             function addResult(n) {
-                const x = n.value * 64 + n.membership;
-                if (!alreadyEncountered.has(x)) {
+                const id =  uniqueishId(n);
+                if (!alreadyEncountered.has(id)) {
                     resultArr.push(n);
-                    alreadyEncountered.add(x);
+                    alreadyEncountered.add(id);
                 }
             }
             for (let i = 0; i < arr1.length; i++) {
                 for (let j = (areSame ? i + 1 : 0); j < arr2.length; j++) {
                     const left = arr1[i];
                     const right = arr2[j];
-                    const newMembership = left.membership | right.membership;
-                    if ( (left.membership & right.membership) == 0) {
+                    if (nonOverlappingMembership(left, right)) {
                         if (left.value + right.value < 1000) {
-                            const p = makePlus(left, right);
-                            p.membership = newMembership;
-                            addResult(p);
+                            addResult(makePlus(left, right));
                         }
         
                         if (left.value != 1 && right.value != 1 && left.value * right.value < 1000) {
-                            const t = makeTimes(left, right);
-                            t.membership = newMembership;
-                            addResult(t);
+                            addResult(makeTimes(left, right));
                         }
         
                         if (left.value > right.value) {
-                            const m = makeMinus(left, right);
-                            m.membership = newMembership;
-                            addResult(m);
+                            addResult(makeMinus(left, right));
                         }
 
                         if (right.value > left.value) {
-                            const m = makeMinus(right, left);
-                            m.membership = newMembership;
-                            addResult(m);
+                            addResult(makeMinus(right, left));
                         }
         
                         if (left.value % right.value == 0 && right.value != 1) {
-                            const d = makeDivides(left, right);
-                            d.membership = newMembership;
-                            addResult(d);
+                            addResult(makeDivides(left, right));
                         }
 
                         if (right.value % left.value == 0 && left.value != 1) {
-                            const d = makeDivides(right, left);
-                            d.membership = newMembership;
-                            addResult(d);
+                            addResult(makeDivides(right, left));
                         }
                     }
                 }
             }
         }
 
-        const ones = pool.map(makeNumber);
-        for (let i = 0; i < ones.length; i++) {
-            ones[i].membership = 2**i;
+        const ones = []; 
+        for (let i = 0; i < pool.length; i++) {
+            ones.push(makeNumber(pool[i], 2**i));
         }
-
 
         const twos = [];
         combine(ones, ones, true, twos);
@@ -265,52 +286,62 @@
         combine(twos, fours, false, sixes);
         combine(threes, threes, true, sixes);
 
-        // console.log("ones.length", ones.length);
-        // console.log("twos.length", twos.length);
-        // console.log("threes.length", threes.length);
-        // console.log("fours.length", fours.length);
-        // console.log("fives.length", fives.length);
-        // console.log("sixes.length", sixes.length);
-
-        const results = [];
+        const allEquations = [];
         [ones, twos, threes, fours, fives, sixes].forEach(arr => {
             for (let i = 0; i < arr.length; i++) {
-                if (arr[i].value == target) {
-                    results.push(arr[i]);
-                }
+                allEquations.push(arr[i]);
             }
         });
 
-        return results;
+        return groupEquations(allEquations);
+    }
+
+
+    function filterEquations(groupedEquations, desiredDifficulty) {
+        return groupedEquations.filter(tuple => tuple[1].easiestDifficulty === desiredDifficulty);
     }
 
     const rand = getRng(getRngSeed());
     const smallsPool = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     const bigsPool = [25, 50, 75, 100];
+    const difficultyToTargetIndex = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+    const nums =  [... takeRandom(rand, smallsPool, 4)[0], ... takeRandom(rand, bigsPool, 2)[0]];
+    const equations = findAllSolutions(nums);
 
     function setup() {
+        let difficulty = parseInt(document.getElementById("difficulty").value);
+        let equationsAtDifficulty = filterEquations(equations, difficulty);
+
+        while (equationsAtDifficulty.length <= difficultyToTargetIndex[difficulty]) {
+            difficulty = difficulty == 5 ? 1 : difficulty + 1;
+            document.getElementById("difficulty").value = difficulty;
+            equationsAtDifficulty = filterEquations(equations, difficulty);
+        }
+
         document.getElementById("solution").textContent = "Solution: ???";
 
-        const nums =  [... takeRandom(rand, smallsPool, 4)[0], ... takeRandom(rand, bigsPool, 2)[0]];
+        const targetIndex = difficultyToTargetIndex[difficulty];
 
-        const target = generatePleasantTarget(rand, nums);
+        const targetNumber = equationsAtDifficulty[targetIndex][0];
+        const solutions = equationsAtDifficulty[targetIndex][1].equations;
 
         for (let i = 0; i < nums.length; i++) {
             document.getElementById("num-" + i).textContent = nums[i];
         }
 
-        document.getElementById("target").textContent = "Target: " + target.value;
+        document.getElementById("target").textContent = "Target: " + targetNumber;
 
-        const allSolutions = findAllSolutions(nums, target.value).map(targetToString);
+        const allSolutions = solutions.map(targetToString);
         document.getElementById("show-solution").onclick = () => {
             document.getElementById("solution").innerHTML = "Solution(s): </br>" + allSolutions.join("</br>");
         }
 
-        // console.log(target.value);
-        // console.log(findAllSolutions(nums, target.value).map(targetToString));
+        difficultyToTargetIndex[difficulty]++;
     }
 
     document.getElementById("gimme-another").onclick = setup;
+    document.getElementById("difficulty").oninput = setup;
 
     setup();
 </script>
