@@ -322,7 +322,7 @@
             equationsAtDifficulty = filterEquations(equations, difficulty);
         }
 
-        document.getElementById("solution").textContent = "Solution: ???";
+        document.getElementById("solution").textContent = "Solutions: ???";
 
         const targetIndex = difficultyToTargetIndex[difficulty];
 
@@ -337,7 +337,7 @@
 
         const allSolutions = solutions.map(targetToString);
         document.getElementById("show-solution").onclick = () => {
-            document.getElementById("solution").innerHTML = "Solution(s): </br>" + allSolutions.join("</br>");
+            document.getElementById("solution").innerHTML = "Solutions: </br>" + allSolutions.join("</br>");
         }
     }
 
