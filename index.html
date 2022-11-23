@@ -309,8 +309,11 @@
     const nums =  [... takeRandom(rand, smallsPool, 4)[0], ... takeRandom(rand, bigsPool, 2)[0]];
     const equations = findAllSolutions(nums);
 
-    function setup() {
+    function setup(updateTargetIndex) {
+
         let difficulty = parseInt(document.getElementById("difficulty").value);
+        difficultyToTargetIndex[difficulty] = updateTargetIndex(difficultyToTargetIndex[difficulty]);
+
         let equationsAtDifficulty = filterEquations(equations, difficulty);
 
         while (equationsAtDifficulty.length <= difficultyToTargetIndex[difficulty]) {
@@ -336,12 +339,10 @@
         document.getElementById("show-solution").onclick = () => {
             document.getElementById("solution").innerHTML = "Solution(s): </br>" + allSolutions.join("</br>");
         }
-
-        difficultyToTargetIndex[difficulty]++;
     }
 
-    document.getElementById("gimme-another").onclick = setup;
-    document.getElementById("difficulty").oninput = setup;
+    document.getElementById("gimme-another").onclick = () => setup(t => t + 1);
+    document.getElementById("difficulty").oninput = () => setup(t => t);
 
-    setup();
+    setup(t => t);
 </script>
