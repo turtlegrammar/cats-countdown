@@ -204,17 +204,24 @@
 
             for (var [val, eqs] of valueToEqs.entries()) {
                 eqs.sort( (x, y) => x.complexity - y.complexity);
-                valueToEqSummary.set(val, {easiestComplexity: eqs[0].complexity, easiestDifficulty: eqs[0].difficulty, numEqs: eqs.length, equations: eqs});
+                valueToEqSummary.set(val, {
+                    value: val,
+                    easiestComplexity: eqs[0].complexity, 
+                    easiestDifficulty: eqs[0].difficulty, 
+                    numEqs: eqs.length, 
+                    equations: eqs});
             }
 
             const sortedValueToEqSummary = [ ... valueToEqSummary];
 
-            sortedValueToEqSummary.sort((x, y) => { 
-                const n = x[1].numEqs - y[1].numEqs; 
-                return n != 0 
-                    ? n 
-                    : y[1].easiestDifficulty - x[1].easiestDifficulty; 
-                });
+            sortedValueToEqSummary.sort((xx, yy) => { 
+                const x = xx[1]; const y = yy[1];
+                // to add wiggle room, use the below, which maps 1 -> 2, 2 -> 2, 3 -> 4, 4 -> 4 etc,
+                // aka having 1 solution is the same as 2.
+                const numEqsAscendingWithWiggleRoom = x.numEqs - y.numEqs; 
+                const valAscending = x.value - y.value;
+                return numEqsAscendingWithWiggleRoom != 0 ? numEqsAscendingWithWiggleRoom : valAscending;
+            });
 
             return sortedValueToEqSummary;
         }
