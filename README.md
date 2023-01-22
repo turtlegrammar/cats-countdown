@@ -3,7 +3,7 @@ This is a math game I made for a friend based on the British game show
 
 It's live at https://rachelwantsacat.com/ .
 
-My goal was to implement this game as simply as possible, using a single html file and no frameworks.
+My friend requested that the interface be as simple as possible and be anti-gamified. And my goal was to implement this game as simply as possible, using a single html file and no frameworks.
 
 Given a set of 6 numbers, like:
 
